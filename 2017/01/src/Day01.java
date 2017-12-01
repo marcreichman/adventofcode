@@ -24,9 +24,7 @@ public class Day01 {
         int sumTotal = 0;
         for (int i = 0; i < s.length(); i++) {
             int thisChar = Character.getNumericValue(s.charAt(i));
-            int nextCharIndex = i + (s.length() / 2);
-            if (nextCharIndex >= s.length()) nextCharIndex -= s.length();
-            int nextChar = Character.getNumericValue(s.charAt(nextCharIndex));
+            int nextChar = Character.getNumericValue(s.charAt((i + (s.length() / 2)) % s.length()));
 
             if (thisChar == nextChar) sumTotal += thisChar;
         }
