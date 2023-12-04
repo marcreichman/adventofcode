@@ -5,7 +5,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Day03 extends AdventDayRunner {
@@ -114,13 +118,93 @@ public class Day03 extends AdventDayRunner {
 
     }
 
-    @Override
-    protected void runSolutionPartTwo() throws IOException {
-
-    }
-
     private enum PointType {DIGIT, SYMBOL, NOTHING}
 
     private record EnginePoint(Character value, PointType type) {
     }
+
+    @Override
+    protected void runSolutionPartTwo() throws IOException {
+        final List<String> allLines = Files.readAllLines(getInputFile());
+        final List<Long> gearRatios = new ArrayList<>();
+        final Pattern integerPattern = Pattern.compile("-?\\d+");
+
+        for (int l = 0; l < allLines.size(); l++) {
+            String prevLine = l > 0 ? allLines.get(l - 1) : null;
+            String thisLine = allLines.get(l);
+            String nextLine = l < ((allLines.size()) - 1) ? allLines.get(l + 1) : null;
+
+            // general flow: find gears on lines, for each one, look in 3x3 grid around gear for a digit. if any are
+            // found, scan around said digit to find integers. if there are exactly two integers found, calc the ratio
+            // and store in the list. sum up the list.
+            int[] gearIndices = IntStream.range(0, thisLine.length()).filter(i -> thisLine.charAt(i) == '*').toArray();
+            for (int gearIndex : gearIndices) {
+                List<Integer> neighborIntegers = new ArrayList<>();
+                // look before
+                if (gearIndex > 0 && Character.isDigit(thisLine.charAt(gearIndex - 1))) {
+                    String neighbor = null;
+                    for (int c = (gearIndex - 1); c >= 0; c--) {
+                        if (!Character.isDigit(thisLine.charAt(c))) {
+                            neighbor = thisLine.substring(c + 1, gearIndex);
+                            break;
+
+                        }
+                    }
+
+                    if (neighbor == null) {
+                        neighbor = thisLine.substring(0, gearIndex);
+                    }
+                    neighborIntegers.add(Integer.parseInt(neighbor));
+                }
+
+                // look after
+                if (gearIndex < (thisLine.length() - 1) && Character.isDigit(thisLine.charAt(gearIndex + 1))) {
+                    String neighbor = null;
+                    for (int c = (gearIndex + 1); c < thisLine.length(); c++) {
+                        if (!Character.isDigit(thisLine.charAt(c))) {
+                            neighbor = thisLine.substring(gearIndex + 1, c);
+                            break;
+                        }
+                    }
+
+                    if (neighbor == null) {
+                        neighbor = thisLine.substring(gearIndex + 1);
+                    }
+                    neighborIntegers.add(Integer.parseInt(neighbor));
+                }
+
+                Consumer<String> neighborCheck = line -> {
+                    Matcher matcher = integerPattern.matcher(line);
+                    while (matcher.find()) {
+                        String candidate = matcher.group();
+                        int candStart = matcher.start();
+                        int candEnd = matcher.end();
+
+                        if ((gearIndex + 1) >= candStart && gearIndex <= candEnd) {
+                            neighborIntegers.add(Integer.parseInt(candidate));
+                        }
+                    }
+                };
+
+                // look above
+                if (prevLine != null) {
+                    neighborCheck.accept(prevLine);
+                }
+
+                // look below
+                if (nextLine != null) {
+                    neighborCheck.accept(nextLine);
+                }
+
+                if (neighborIntegers.size() == 2) {
+                    gearRatios.add(neighborIntegers.get(0).longValue() * neighborIntegers.get(1).longValue());
+                }
+            }
+        }
+
+        long ratioSum = gearRatios.stream().mapToLong(Long::longValue).sum();
+        System.out.println("Part two: " + ratioSum);
+
+    }
+
 }
