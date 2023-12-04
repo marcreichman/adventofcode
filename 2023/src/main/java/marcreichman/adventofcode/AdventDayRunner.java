@@ -6,7 +6,15 @@ import java.nio.file.Paths;
 
 public abstract class AdventDayRunner {
     protected Path getInputFile() {
-        return Paths.get("src", "main", "resources", "inputs", getDayString(), "input.txt");
+        return getResourceFile("input.txt");
+    }
+
+    protected Path getTestInputFile() {
+        return getResourceFile("testinput.txt");
+    }
+
+    private Path getResourceFile(String filename) {
+        return Paths.get("src", "main", "resources", "inputs", getDayString(), filename);
     }
 
     protected abstract String getDayString();
