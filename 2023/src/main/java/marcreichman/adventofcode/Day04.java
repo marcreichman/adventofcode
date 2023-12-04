@@ -56,12 +56,9 @@ public class Day04 extends AdventDayRunner {
         final Map<Long, Card> cardMap = parseCards(getInputFile());
         Queue<Card> cardScoringQueue = new LinkedList<>(cardMap.values());
         Map<Long, AtomicLong> cardCounts = new HashMap<>();
-        int nSeenCards = 0;
         do {
             Card card = cardScoringQueue.poll();
             if (card != null) {
-                nSeenCards++;
-
                 cardCounts.computeIfAbsent(card.id, k -> new AtomicLong()).incrementAndGet();
 
                 long numMatches = card.inputNumbers.stream().filter(card.winningNumbers::contains).count();
@@ -70,7 +67,7 @@ public class Day04 extends AdventDayRunner {
             }
         } while (!cardScoringQueue.isEmpty());
 
-        System.out.println("Part Two: " + nSeenCards);
+        System.out.println("Part Two: " + cardCounts.values().stream().mapToLong(AtomicLong::get).sum());
 
     }
 
