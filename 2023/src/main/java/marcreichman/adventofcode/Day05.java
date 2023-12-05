@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -63,14 +67,31 @@ public class Day05 extends AdventDayRunner {
 
         List<Long> seeds = almanac.seeds;
         if (seedsAreRanges) {
-            long minLocation = Long.MAX_VALUE;
+            ExecutorService executorService = Executors.newFixedThreadPool(10);
+            List<Long> minLocations = new CopyOnWriteArrayList<>();
             for (int s = 0, seedsSize = seeds.size(); s < seedsSize; s += 2) {
-                for (long l = seeds.get(s); l < seeds.get(s) + seeds.get(s + 1); l++) {
-                    minLocation = Math.min(minLocation, getLocationForSeed.apply(l));
-                }
+                final long rangeStart = seeds.get(s);
+                final long rangeEnd = seeds.get(s) + seeds.get(s + 1);
+                executorService.submit(() -> {
+                    long minLocation = Long.MAX_VALUE;
+                    for (long l = rangeStart; l < rangeEnd; l++) {
+                        minLocation = Math.min(minLocation, getLocationForSeed.apply(l));
+                    }
+
+                    minLocations.add(minLocation);
+                });
+
             }
 
-            return minLocation;
+            try {
+                executorService.shutdown();
+                executorService.awaitTermination(15, TimeUnit.MINUTES);
+            } catch (InterruptedException intEx) {
+                Thread.currentThread().interrupt();
+                return 0L;
+            }
+
+            return minLocations.stream().mapToLong(Long::longValue).min().orElseThrow();
         } else {
             final Map<Long, Long> locations = new HashMap<>();
             seeds.forEach(seed -> locations.computeIfAbsent(seed, getLocationForSeed));
