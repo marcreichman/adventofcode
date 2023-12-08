@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 public class Day08 extends AdventDayRunner {
     @Override
@@ -46,11 +47,9 @@ public class Day08 extends AdventDayRunner {
         return new Network(directions, "AAA", nodes);
     }
 
-    @Override
-    protected void runSolutionPartOne() throws IOException {
-        final Network network = parseNetwork(getInputFile());
+    private long getStepsToFinish(final Network network, final String start, final Predicate<Node> targetCheck) {
         boolean reachedTarget = false;
-        Node current = network.nodes.get(network.start);
+        Node current = network.nodes.get(start);
         int currDirectionIndex = 0;
         long nStep = 0L;
         while (!reachedTarget) {
@@ -62,46 +61,47 @@ public class Day08 extends AdventDayRunner {
                 case RIGHT -> network.nodes.get(current.right);
             };
 
-            reachedTarget = current.name.equals("ZZZ");
+            reachedTarget = targetCheck.test(current);
 
             if (currDirectionIndex >= network.directions.size()) {
                 currDirectionIndex = 0;
             }
         }
 
-        System.out.println("Part One: " + nStep);
+        return nStep;
+    }
+
+    // these two functions are borrowed from  https://www.tutorialsfreak.com/java-tutorial/examples/lcm-array
+    // Function to find the GCD of two numbers
+    public static long gcd(long a, long b) {
+        if (b == 0) {
+            return a;
+        }
+        return gcd(b, a % b);
+    }
+
+    // Function to find the LCM of an array of numbers
+    public static long findLCM(Long[] arr) {
+        long lcm = arr[0];
+        for (int i = 1; i < arr.length; i++) {
+            long currentNumber = arr[i];
+            lcm = (lcm * currentNumber) / gcd(lcm, currentNumber);
+        }
+        return lcm;
+    }
+
+    @Override
+    protected void runSolutionPartOne() throws IOException {
+        final Network network = parseNetwork(getInputFile());
+        System.out.println("Part One: " + getStepsToFinish(network, network.start, node -> node.name.equals("ZZZ")));
     }
 
     @Override
     protected void runSolutionPartTwo() throws IOException {
         final Network network = parseNetwork(getInputFile());
-        boolean reachedTarget = false;
         final List<Node> currentNodes = new ArrayList<>(network.nodes.values().stream().filter(Node::isStart).toList());
-        int currDirectionIndex = 0;
-        long nStep = 0L;
-        while (!reachedTarget) {
-            nStep++;
-
-            if (nStep % 1_000_000 == 0) {
-                System.out.println("Step " + nStep);
-            }
-            Direction direction = network.directions.get(currDirectionIndex++);
-            for (int i = 0; i < currentNodes.size(); i++) {
-                Node current = currentNodes.get(i);
-                current = switch (direction) {
-                    case LEFT -> network.nodes.get(current.left);
-                    case RIGHT -> network.nodes.get(current.right);
-                };
-                currentNodes.set(i, current);
-            }
-
-            reachedTarget = currentNodes.stream().allMatch(n -> n.name.endsWith("Z"));
-            if (currDirectionIndex >= network.directions.size()) {
-                currDirectionIndex = 0;
-            }
-
-        }
-
-        System.out.println("Part Two: " + nStep);
+        final List<Long> nodeSteps = new ArrayList<>();
+        currentNodes.forEach(node -> nodeSteps.add(getStepsToFinish(network, node.name, target -> target.name.endsWith("Z"))));
+        System.out.println("Part Two: " + findLCM(nodeSteps.toArray(new Long[0])));
     }
 }
